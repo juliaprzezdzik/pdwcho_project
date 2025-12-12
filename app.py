@@ -46,36 +46,3 @@ def hello_world():
         return jsonify({'error': f"Błąd bazy danych (Auth?): {str(e)}"}), 500
 
 # Kod do uruchomienia serwera jest przekazywany przez Gunicorn (Render), więc usuwamy sekcję if __name__ == '__main__':
-
-@app.route('/recommendations/<username>', methods=['GET'])
-def get_recommendations(username):
-    if not driver:
-        return jsonify({'error': 'Połączenie z bazą danych nieudane.'}), 500
-
-    # ZAPYTANIE GRAFOWE - Kopiuj z dokumentacji!
-    cypher_query = """
-    MATCH (me:User {username: $username})-[:READS]->(b:Book)<-[:READS]->(other:User)
-    WHERE other <> me
-    WITH other, count(b) AS commonBooks
-    ORDER BY commonBooks DESC
-    LIMIT 5
-
-    MATCH (other)-[:READS {rating: r}]->(recBook:Book)
-    WHERE NOT EXISTS {
-        MATCH (me)-[:READS]->(recBook)
-    }
-    RETURN recBook.title AS title,
-           avg(r) AS avgRating
-    ORDER BY avgRating DESC
-    LIMIT 5
-    """
-
-    try:
-        with driver.session() as session:
-            result = session.run(cypher_query, username=username)
-            recommendations = [{"title": record["title"], "avgRating": record["avgRating"]} for record in result]
-
-        return jsonify({'recommendations': recommendations}), 200
-
-    except Exception as e:
-        return jsonify({'error': f"Błąd wykonania zapytania: {str(e)}"}), 500
