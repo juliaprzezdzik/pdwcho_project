@@ -21,6 +21,10 @@ except Exception as e:
 
 app = Flask(__name__)
 
+@app.route('/', methods=['GET'])
+def index():
+    return open('index.html').read()
+
 @app.route('/hello', methods=['GET'])
 def hello_world():
     if not driver:

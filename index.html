@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Rekomendacji Książek</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-size: 1.2em;
+            margin: 20px 0;
+        }
+        .error {
+            background: #fee;
+            border-left: 4px solid #f44;
+            padding: 15px;
+            border-radius: 5px;
+            color: #c33;
+            margin: 20px 0;
+        }
+        .results {
+            margin-top: 30px;
+        }
+        .user-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .user-info h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .book-card {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        .book-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            transform: translateX(5px);
+        }
+        .book-title {
+            font-size: 1.4em;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .book-details {
+            display: flex;
+            gap: 20px;
+            color: #666;
+            font-size: 0.95em;
+        }
+        .rating {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        .isbn {
+            color: #999;
+        }
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 1.1em;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #999;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 System Rekomendacji Książek</h1>
+        <p class="subtitle">Znajdź książki dopasowane do Twoich upodobań!</p>
+        
+        <div class="input-group">
+            <input 
+                type="text" 
+                id="username" 
+                placeholder="Wpisz nazwę użytkownika (np. AnnaK, PiotrZ, MariaW)"
+                value="AnnaK"
+            >
+            <button onclick="getRecommendations()" id="searchBtn">
+                Szukaj Rekomendacji
+            </button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            ⏳ Szukam rekomendacji...
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="results" class="results"></div>
+
+        <div class="footer">
+            Powered by Neo4j + Flask | Julia Przezdzik
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://pdwcho-project.onrender.com';
+
+        async function getRecommendations() {
+            const username = document.getElementById('username').value.trim();
+            
+            if (!username) {
+                showError('Proszę wpisać nazwę użytkownika!');
+                return;
+            }
+
+            // UI updates
+            document.getElementById('searchBtn').disabled = true;
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('results').innerHTML = '';
+
+            try {
+                const response = await fetch(`${API_URL}/recommendations/${username}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Błąd serwera');
+                }
+
+                displayResults(data);
+            } catch (error) {
+                showError(`Błąd: ${error.message}`);
+            } finally {
+                document.getElementById('searchBtn').disabled = false;
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = `
+                <div class="user-info">
+                    <h2>Rekomendacje dla: ${data.user}</h2>
+                    <p>Znaleziono: ${data.count} książek</p>
+                </div>
+            `;
+
+            if (data.recommendations.length === 0) {
+                html += `
+                    <div class="empty">
+                        😕 Nie znaleziono rekomendacji.<br>
+                        Spróbuj innego użytkownika lub dodaj więcej danych w Neo4j!
+                    </div>
+                `;
+            } else {
+                data.recommendations.forEach((book, index) => {
+                    html += `
+                        <div class="book-card">
+                            <div class="book-title">${index + 1}. ${book.title}</div>
+                            <div class="book-details">
+                                <span class="rating">⭐ ${book.avgRating.toFixed(1)}/5.0</span>
+                                <span>📖 ${book.recommenders} osób poleca</span>
+                                <span class="isbn">ISBN: ${book.isbn}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Enter key support
+        document.getElementById('username').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                getRecommendations();
+            }
+        });
+
+        // Load recommendations on page load
+        window.onload = () => {
+            getRecommendations();
+        };
+    </script>
+</body>
+</html>
