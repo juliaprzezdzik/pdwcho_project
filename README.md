@@ -7,9 +7,7 @@ cat > README.md << 'EOF'
 
 **[https://pdwcho-project.onrender.com](https://pdwcho-project.onrender.com)**
 
-Wypróbuj z użytkownikami: `AnnaK`, `PiotrZ`, `MariaW`
-
-
+<img width="809" height="557" alt="Zrzut ekranu 2025-12-13 o 11 39 41" src="https://github.com/user-attachments/assets/083280fc-5f24-4e1e-a7bc-f14330de111c" />
 
 ## Funkcjonalności
 
@@ -69,7 +67,7 @@ python app.py
 # 6. http://localhost:5000
 ```
 
-## 📊 Model Danych (Neo4j)
+## Model Danych (Neo4j)
 ```cypher
 // Węzły
 (:User {username: string, name: string})
@@ -86,7 +84,7 @@ python app.py
 3. **Generuj rekomendacje** - książki które czytali podobni użytkownicy
 4. **Ranking** - sortowanie według średniej oceny i liczby rekomendujących
 
-## 🌐 API Endpoints
+## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -99,7 +97,7 @@ python app.py
 curl https://pdwcho-project.onrender.com/recommendations/AnnaK
 ```
 
-**Response:**
+**Odpowiedz:**
 ```json
 {
   "user": "AnnaK",
