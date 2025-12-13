@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Rekomendacji Książek</title>
+    <title>System Rekomendacji Książek - Neo4j</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -13,7 +13,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             border-radius: 20px;
@@ -24,16 +24,25 @@
             color: #667eea;
             margin-bottom: 10px;
             font-size: 2.5em;
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
         .subtitle {
             color: #666;
             margin-bottom: 30px;
             font-size: 1.1em;
         }
+        .input-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
         .input-group {
             display: flex;
             gap: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
         }
         input {
             flex: 1;
@@ -56,20 +65,68 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: all 0.3s;
         }
         button:hover {
             transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
         button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+            transform: none;
+        }
+        .quick-users {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .quick-user-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .quick-user-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
         }
         .loading {
             text-align: center;
             color: #667eea;
             font-size: 1.2em;
             margin: 20px 0;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
         .error {
             background: #fee;
@@ -78,85 +135,167 @@
             border-radius: 5px;
             color: #c33;
             margin: 20px 0;
+            animation: slideIn 0.3s;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
         .results {
             margin-top: 30px;
         }
         .user-info {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
         }
         .user-info h2 {
-            color: #333;
             margin-bottom: 10px;
+            font-size: 1.8em;
+        }
+        .book-grid {
+            display: grid;
+            gap: 15px;
         }
         .book-card {
             background: #fff;
             border: 2px solid #e0e0e0;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 20px;
-            margin-bottom: 15px;
             transition: all 0.3s;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .book-card:hover {
             border-color: #667eea;
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
             transform: translateX(5px);
         }
-        .book-title {
-            font-size: 1.4em;
-            color: #333;
-            margin-bottom: 10px;
+        .book-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+        .book-rank {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-weight: bold;
+            font-size: 1.2em;
+        }
+        .book-title {
+            flex: 1;
+            font-size: 1.5em;
+            color: #333;
+            font-weight: bold;
+            margin-left: 15px;
         }
         .book-details {
             display: flex;
             gap: 20px;
+            flex-wrap: wrap;
             color: #666;
             font-size: 0.95em;
+        }
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         .rating {
             color: #f39c12;
             font-weight: bold;
+            font-size: 1.1em;
+        }
+        .stars {
+            color: #f39c12;
         }
         .isbn {
             color: #999;
+            font-family: monospace;
+        }
+        .recommenders {
+            color: #667eea;
+            font-weight: bold;
         }
         .empty {
             text-align: center;
-            padding: 40px;
+            padding: 60px 40px;
             color: #999;
-            font-size: 1.1em;
+            font-size: 1.2em;
+        }
+        .empty-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
         }
         .footer {
-            margin-top: 30px;
+            margin-top: 40px;
             text-align: center;
             color: #999;
             font-size: 0.9em;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .tech-stack {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .tech-badge {
+            background: #f0f0f0;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            color: #666;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📚 System Rekomendacji Książek</h1>
-        <p class="subtitle">Znajdź książki dopasowane do Twoich upodobań!</p>
+        <h1>
+            📚 System Rekomendacji Książek
+        </h1>
+        <p class="subtitle">Collaborative Filtering oparty na grafowej bazie danych Neo4j</p>
         
-        <div class="input-group">
-            <input 
-                type="text" 
-                id="username" 
-                placeholder="Wpisz nazwę użytkownika (np. AnnaK, PiotrZ, MariaW)"
-                value="AnnaK"
-            >
-            <button onclick="getRecommendations()" id="searchBtn">
-                Szukaj Rekomendacji
-            </button>
+        <div class="input-section">
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="username" 
+                    placeholder="Wpisz nazwę użytkownika (np. AnnaK, PiotrZ, MariaW)"
+                    value="AnnaK"
+                >
+                <button onclick="getRecommendations()" id="searchBtn">
+                    🔍 Szukaj Rekomendacji
+                </button>
+            </div>
+            <div style="margin-top: 10px; color: #666; font-size: 0.9em;">
+                💡 Szybki wybór:
+            </div>
+            <div class="quick-users">
+                <button class="quick-user-btn" onclick="selectUser('AnnaK')">👤 AnnaK</button>
+                <button class="quick-user-btn" onclick="selectUser('PiotrZ')">👤 PiotrZ</button>
+                <button class="quick-user-btn" onclick="selectUser('MariaW')">👤 MariaW</button>
+            </div>
         </div>
 
+        <div id="stats" class="stats-grid" style="display: none;"></div>
+
         <div id="loading" class="loading" style="display: none;">
-            ⏳ Szukam rekomendacji...
+            ⏳ Przeszukuję graf relacji w Neo4j...
         </div>
 
         <div id="error" class="error" style="display: none;"></div>
@@ -164,18 +303,38 @@
         <div id="results" class="results"></div>
 
         <div class="footer">
-            Powered by Neo4j + Flask | Julia Przezdzik
+            <strong>Proof of Concept</strong><br>
+            <div class="tech-stack">
+                <span class="tech-badge"> Neo4j AuraDB</span>
+                <span class="tech-badge"> Python Flask</span>
+                <span class="tech-badge"> RESTful API</span>
+                <span class="tech-badge">☁ Render.com</span>
+                <span class="tech-badge"> SPA (HTML/JS)</span>
+            </div>
         </div>
     </div>
 
     <script>
         const API_URL = 'https://pdwcho-project.onrender.com';
 
+        function selectUser(username) {
+            document.getElementById('username').value = username;
+            getRecommendations();
+        }
+
+        function generateStars(rating) {
+            const fullStars = Math.floor(rating);
+            const halfStar = rating % 1 >= 0.5;
+            let stars = '⭐'.repeat(fullStars);
+            if (halfStar) stars += '½';
+            return stars;
+        }
+
         async function getRecommendations() {
             const username = document.getElementById('username').value.trim();
             
             if (!username) {
-                showError('Proszę wpisać nazwę użytkownika!');
+                showError('️ Proszę wpisać nazwę użytkownika!');
                 return;
             }
 
@@ -184,6 +343,7 @@
             document.getElementById('loading').style.display = 'block';
             document.getElementById('error').style.display = 'none';
             document.getElementById('results').innerHTML = '';
+            document.getElementById('stats').style.display = 'none';
 
             try {
                 const response = await fetch(`${API_URL}/recommendations/${username}`);
@@ -195,7 +355,7 @@
 
                 displayResults(data);
             } catch (error) {
-                showError(`Błąd: ${error.message}`);
+                showError(` Błąd: ${error.message}`);
             } finally {
                 document.getElementById('searchBtn').disabled = false;
                 document.getElementById('loading').style.display = 'none';
@@ -204,34 +364,65 @@
 
         function displayResults(data) {
             const resultsDiv = document.getElementById('results');
+            const statsDiv = document.getElementById('stats');
             
+            // Show stats
+            statsDiv.style.display = 'grid';
+            statsDiv.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${data.count}</div>
+                    <div class="stat-label">📖 Znalezionych Rekomendacji</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${data.user}</div>
+                    <div class="stat-label">👤 Użytkownik</div>
+                </div>
+            `;
+
             let html = `
                 <div class="user-info">
-                    <h2>Rekomendacje dla: ${data.user}</h2>
-                    <p>Znaleziono: ${data.count} książek</p>
+                    <h2>🎯 Rekomendacje dla: ${data.user}</h2>
+                    <p>System znalazł ${data.count} ${data.count === 1 ? 'książkę' : data.count < 5 ? 'książki' : 'książek'} dopasowanych do Twoich upodobań</p>
                 </div>
             `;
 
             if (data.recommendations.length === 0) {
                 html += `
                     <div class="empty">
-                        😕 Nie znaleziono rekomendacji.<br>
-                        Spróbuj innego użytkownika lub dodaj więcej danych w Neo4j!
+                        <div class="empty-icon"></div>
+                        <strong>Nie znaleziono rekomendacji</strong><br><br>
+                        Możliwe przyczyny:<br>
+                        • Użytkownik nie istnieje w bazie danych<br>
+                        • Użytkownik przeczytał już wszystkie dostępne książki<br>
+                        • Brak użytkowników o podobnych upodobaniach<br><br>
+                         Spróbuj: AnnaK, PiotrZ lub MariaW
                     </div>
                 `;
             } else {
+                html += '<div class="book-grid">';
                 data.recommendations.forEach((book, index) => {
                     html += `
                         <div class="book-card">
-                            <div class="book-title">${index + 1}. ${book.title}</div>
+                            <div class="book-header">
+                                <div class="book-rank">#${index + 1}</div>
+                                <div class="book-title">${book.title}</div>
+                            </div>
                             <div class="book-details">
-                                <span class="rating">⭐ ${book.avgRating.toFixed(1)}/5.0</span>
-                                <span>📖 ${book.recommenders} osób poleca</span>
-                                <span class="isbn">ISBN: ${book.isbn}</span>
+                                <div class="detail-item">
+                                    <span class="stars">${generateStars(book.avgRating)}</span>
+                                    <span class="rating">${book.avgRating.toFixed(1)}/5.0</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="recommenders"> ${book.recommenders} ${book.recommenders === 1 ? 'osoba' : 'osoby'} poleca</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="isbn"> ISBN: ${book.isbn}</span>
+                                </div>
                             </div>
                         </div>
                     `;
                 });
+                html += '</div>';
             }
 
             resultsDiv.innerHTML = html;
